@@ -1,0 +1,12 @@
+{
+  "name": "pi-deepwiki",
+  "version": "1.0.0",
+  "description": "DeepWiki MCP integration for Pi - AI-powered documentation for GitHub repositories",
+  "keywords": ["pi-package", "deepwiki", "mcp", "documentation", "github"],
+  "author": "",
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./extensions"],
+    "skills": ["./skills"]
+  }
+}

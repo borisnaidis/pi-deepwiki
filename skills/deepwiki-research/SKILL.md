@@ -1,4 +1,5 @@
 ---
+name: deepwiki-research
 description: Use when the user asks about understanding, researching, learning, or exploring a GitHub repository, its architecture, APIs, implementation details, or how to use or contribute to a project. Trigger on questions like "how does X work", "explain Y", "tell me about Z", "what is W", "architecture of", "how to use", "API documentation for", "implementation of", or when the user mentions a GitHub repository they want to understand. Use for repos like facebook/react, vercel/next.js, mitsuhiko/agent-stuff, or any owner/repo mentioned in the conversation.
 ---
 

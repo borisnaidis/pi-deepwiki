@@ -232,7 +232,7 @@ function renderCollapsedMarkdownPreview(text: string, theme: { fg: (color: strin
       const previewLines = lines.slice(0, COLLAPSED_PREVIEW_LINES);
       const remaining = lines.length - COLLAPSED_PREVIEW_LINES;
       const hint = truncateToWidth(
-        `${theme.fg("muted", `... (${remaining} more lines,`)} ${keyHint("expandTools", "to expand")})`,
+        `${theme.fg("muted", `... (${remaining} more lines,`)} ${keyHint("app.tools.expand", "to expand")})`,
         width,
         "..."
       );

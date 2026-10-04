@@ -25,11 +25,72 @@ import { Text, Markdown, truncateToWidth, type Component } from "@earendil-works
 const COLLAPSED_PREVIEW_LINES = 10;
 
 const MCP_URL = "https://mcp.deepwiki.com/mcp";
+const MCP_TIMEOUT_MS = 60_000;
+const MCP_MAX_RETRIES = 2;
+const MCP_RETRY_BASE_DELAY_MS = 500;
+
+class HttpError extends Error {
+  readonly status: number;
+
+  constructor(status: number, statusText: string, body: string) {
+    super(`HTTP ${status}: ${statusText}\n${body.slice(0, 200)}`);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
+/** Transient failures: network errors, timeouts, and 408/429/5xx. */
+function isTransient(error: unknown, timedOut: boolean): boolean {
+  if (error instanceof HttpError) {
+    return error.status === 408 || error.status === 429 || error.status >= 500;
+  }
+  // fetch network failures surface as TypeError; a per-request timeout aborts.
+  return error instanceof TypeError || timedOut;
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason ?? new Error("Aborted"));
+      return;
+    }
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal?.reason ?? new Error("Aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
 
 /**
- * Make a JSON-RPC request to the DeepWiki MCP server
+ * Make a JSON-RPC request to the DeepWiki MCP server, retrying transient
+ * failures so a flaky server produces a real error instead of a hung turn.
+ * Mirrors pi's built-in MCP client: 60s timeout, two retries on 408/429/5xx.
  */
 async function makeMcpRequest(body: unknown, signal?: AbortSignal): Promise<unknown> {
+  for (let attempt = 0; ; attempt++) {
+    if (signal?.aborted) throw signal.reason ?? new Error("Aborted");
+
+    const timeoutSignal = AbortSignal.timeout(MCP_TIMEOUT_MS);
+    const requestSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+
+    try {
+      return await makeMcpRequestOnce(body, requestSignal);
+    } catch (error) {
+      // Caller cancelled or the failure is not transient: surface it as-is.
+      if (attempt >= MCP_MAX_RETRIES || signal?.aborted || !isTransient(error, timeoutSignal.aborted)) {
+        throw error;
+      }
+      await sleep(MCP_RETRY_BASE_DELAY_MS * (attempt + 1), signal);
+    }
+  }
+}
+
+async function makeMcpRequestOnce(body: unknown, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(MCP_URL, {
     method: "POST",
     headers: {
@@ -42,7 +103,7 @@ async function makeMcpRequest(body: unknown, signal?: AbortSignal): Promise<unkn
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`HTTP ${response.status}: ${response.statusText}\n${text.slice(0, 200)}`);
+    throw new HttpError(response.status, response.statusText, text);
   }
 
   // Parse SSE format response. The DeepWiki stream emits JSON-RPC

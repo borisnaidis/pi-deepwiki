@@ -281,6 +281,7 @@ export default function (pi: ExtensionAPI) {
       "Get a hierarchical outline of documentation topics for a GitHub repository. " +
       "Returns a numbered list of sections and subsections. " +
       "Use this to discover what documentation is available before asking questions.",
+    promptSnippet: "Get the documentation outline (section numbers) for a GitHub repository",
     parameters: Type.Object({
       repoName: Type.String({
         description: 'GitHub repository in "owner/repo" format (e.g., "facebook/react")',
@@ -345,6 +346,7 @@ export default function (pi: ExtensionAPI) {
       "Get a specific section of AI-generated documentation for a GitHub repository. " +
       "Use deepwiki_read_structure first to discover available section paths. " +
       "Returns complete, untruncated content for the specified section.",
+    promptSnippet: "Read one section of a repository's DeepWiki docs by section number",
     parameters: Type.Object({
       repoName: Type.String({
         description: 'GitHub repository in "owner/repo" format (e.g., "facebook/react")',
@@ -486,6 +488,7 @@ export default function (pi: ExtensionAPI) {
       "Ask a natural language question about a GitHub repository and get an AI-powered answer. " +
       "Answers are grounded in the repository's actual code and documentation. " +
       "Can query up to 10 repositories at once for cross-repo comparisons.",
+    promptSnippet: "Ask a question about a GitHub repository, answered from its code and docs",
     parameters: Type.Object({
       repoName: Type.Union(
         [

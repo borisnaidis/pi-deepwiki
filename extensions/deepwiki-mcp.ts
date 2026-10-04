@@ -45,22 +45,41 @@ async function makeMcpRequest(body: unknown, signal?: AbortSignal): Promise<unkn
     throw new Error(`HTTP ${response.status}: ${response.statusText}\n${text.slice(0, 200)}`);
   }
 
-  // Parse SSE format response
+  // Parse SSE format response. The DeepWiki stream emits JSON-RPC
+  // notifications (e.g. progress updates) before the actual response, so we
+  // must return the response event (carries an `id`, plus `result`/`error`),
+  // not the first parseable `data:` line.
   const text = await response.text();
-  const lines = text.split("\n");
 
-  for (const line of lines) {
-    if (line.startsWith("data:")) {
-      try {
-        return JSON.parse(line.slice(5).trim());
-      } catch {
-        // Continue to next line
-      }
+  let notification: unknown;
+  for (const line of text.split("\n")) {
+    if (!line.startsWith("data:")) continue;
+
+    let message: unknown;
+    try {
+      message = JSON.parse(line.slice(5).trim());
+    } catch {
+      continue; // Not valid JSON, skip.
     }
+
+    if (message && typeof message === "object" && ("id" in message || "error" in message)) {
+      return message;
+    }
+    notification = message;
   }
 
-  // Fallback: try parsing entire response
-  return JSON.parse(text);
+  // Fallback: a plain (non-SSE) JSON body.
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Ignore and fall through to the error below.
+  }
+
+  if (notification !== undefined) {
+    return notification;
+  }
+
+  throw new Error("No JSON-RPC response found in DeepWiki server response");
 }
 
 /**
@@ -90,7 +109,15 @@ function extractContent(result: unknown): { text: string; isError: boolean } {
     return { text: content.text, isError };
   }
 
-  return { text: String(result), isError: false };
+  // Unrecognized shape. Surface the raw payload rather than coercing an
+  // object to "[object Object]" and hiding the failure.
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(result) ?? String(result);
+  } catch {
+    serialized = String(result);
+  }
+  return { text: `Unexpected DeepWiki response shape: ${serialized.slice(0, 500)}`, isError: true };
 }
 
 /**

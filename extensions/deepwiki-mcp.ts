@@ -247,8 +247,9 @@ function renderCollapsedMarkdownPreview(text: string, theme: { fg: (color: strin
 }
 
 function renderMarkdownToolResult(
-  result: { content?: Array<{ type: string; text?: string }>; details?: { error?: string; isError?: boolean } },
+  result: { content?: Array<{ type: string; text?: string }> },
   options: { expanded: boolean; isPartial: boolean },
+  isError: boolean,
   theme: { fg: (color: string, text: string) => string },
   pendingMessage: string
 ): Component {
@@ -261,7 +262,7 @@ function renderMarkdownToolResult(
     return new Text(theme.fg("error", "No content"), 0, 0);
   }
 
-  if (result.details?.error || result.details?.isError) {
+  if (isError) {
     return new Text(theme.fg("error", content.text.split("\n")[0]), 0, 0);
   }
 
@@ -333,8 +334,8 @@ export default function (pi: ExtensionAPI) {
       return new Text(text, 0, 0);
     },
 
-    renderResult(result, options, theme) {
-      return renderMarkdownToolResult(result, options, theme, "Fetching structure...");
+    renderResult(result, options, theme, context) {
+      return renderMarkdownToolResult(result, options, context.isError, theme, "Fetching structure...");
     },
   });
 
@@ -475,8 +476,8 @@ export default function (pi: ExtensionAPI) {
       return new Text(text, 0, 0);
     },
 
-    renderResult(result, options, theme) {
-      return renderMarkdownToolResult(result, options, theme, "Fetching content...");
+    renderResult(result, options, theme, context) {
+      return renderMarkdownToolResult(result, options, context.isError, theme, "Fetching content...");
     },
   });
 
@@ -561,8 +562,8 @@ export default function (pi: ExtensionAPI) {
       return new Text(text, 0, 0);
     },
 
-    renderResult(result, options, theme) {
-      return renderMarkdownToolResult(result, options, theme, "Fetching answer...");
+    renderResult(result, options, theme, context) {
+      return renderMarkdownToolResult(result, options, context.isError, theme, "Fetching answer...");
     },
   });
 

@@ -10,8 +10,8 @@
  * - deepwiki_ask_question: Ask natural language questions about a repository
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import {
   truncateHead,
   formatSize,
@@ -19,8 +19,8 @@ import {
   DEFAULT_MAX_LINES,
   getMarkdownTheme,
   keyHint,
-} from "@mariozechner/pi-coding-agent";
-import { Text, Markdown, truncateToWidth, type Component } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { Text, Markdown, truncateToWidth, type Component } from "@earendil-works/pi-tui";
 
 const COLLAPSED_PREVIEW_LINES = 10;
 
